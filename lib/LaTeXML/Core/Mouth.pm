@@ -22,6 +22,8 @@ use LaTeXML::Util::Pathname;
 use Encode qw(decode);
 use base qw(LaTeXML::Common::Object);
 
+our $TOKEN_PROGRESS_QUANTUM = 25;
+
 # Factory method;
 # Create an appropriate Mouth
 # options are
@@ -55,7 +57,7 @@ sub new {
   my $self = bless { source => $options{source},
     shortsource    => $options{shortsource},
     fordefinitions => ($options{fordefinitions} ? 1 : 0),
-    notes          => ($options{notes} ? 1 : 0),
+    notes          => ($options{notes}          ? 1 : 0),
   }, $class;
   $self->openString($string);
   $self->initialize;
@@ -65,7 +67,7 @@ sub openString {
   my ($self, $string) = @_;
   #  if (0){
   if (defined $string) {
-    if (utf8::is_utf8($string)) { }    # If already utf7
+    if    (utf8::is_utf8($string)) { }                                    # If already utf7
     elsif (my $encoding = $STATE->lookupValue('PERL_INPUT_ENCODING')) {
      # Note that if chars in the input cannot be decoded, they are replaced by \x{FFFD}
      # I _think_ that for TeX's behaviour we actually should turn such un-decodeable chars in to space(?).
@@ -97,11 +99,14 @@ sub initialize {
 
 sub finish {
   my ($self) = @_;
-  $$self{buffer} = [];
-  $$self{lineno} = 0;
-  $$self{colno}  = 0;
-  $$self{chars}  = [];
-  $$self{nchars} = 0;
+  return if $$self{finished};
+  $$self{finished} = 1;
+  $$self{buffer}   = [];
+  $$self{lineno}   = 0;
+  $$self{colno}    = 0;
+  $$self{chars}    = [];
+  $$self{nchars}   = 0;
+
   if ($$self{fordefinitions}) {
     $STATE->assignCatcode('@' => $$self{saved_at_cc});
     $STATE->assignValue(INCLUDE_COMMENTS => $$self{SAVED_INCLUDE_COMMENTS}); }
@@ -246,21 +251,21 @@ my %ACTIVE = ();
 # Possibly want to think about caching (common) letters, etc to keep from
 # creating tokens like crazy... or making them more compact... or ???
 my @DISPATCH = (    # [CONSTANT]
-  \&handle_escape,    # T_ESCAPE
-  sub { ($_[1] eq '{' ? T_BEGIN : Token($_[1], CC_BEGIN)) },    # T_BEGIN
-  sub { ($_[1] eq '}' ? T_END   : Token($_[1], CC_END)) },      # T_END
-  sub { ($_[1] eq '$' ? T_MATH  : Token($_[1], CC_MATH)) },     # T_MATH
-  sub { ($_[1] eq '&' ? T_ALIGN : Token($_[1], CC_ALIGN)) },    # T_ALIGN
-  \&handle_EOL,                                                 # T_EOL
-  sub { ($_[1] eq '#' ? T_PARAM : Token($_[1], CC_PARAM)) },    # T_PARAM
-  sub { ($_[1] eq '^' ? T_SUPER : Token($_[1], CC_SUPER)) },    # T_SUPER
-  sub { ($_[1] eq '_' ? T_SUB   : Token($_[1], CC_SUB)) },      # T_SUB
-  sub { undef; },                                               # T_IGNORE (we'll read next token)
-  \&handle_space,                                               # T_SPACE
+  \&handle_escape,                                                      # T_ESCAPE
+  sub { ($_[1] eq '{' ? T_BEGIN : Token($_[1], CC_BEGIN)) },            # T_BEGIN
+  sub { ($_[1] eq '}' ? T_END   : Token($_[1], CC_END)) },              # T_END
+  sub { ($_[1] eq '$' ? T_MATH  : Token($_[1], CC_MATH)) },             # T_MATH
+  sub { ($_[1] eq '&' ? T_ALIGN : Token($_[1], CC_ALIGN)) },            # T_ALIGN
+  \&handle_EOL,                                                         # T_EOL
+  sub { ($_[1] eq '#' ? T_PARAM : Token($_[1], CC_PARAM)) },            # T_PARAM
+  sub { ($_[1] eq '^' ? T_SUPER : Token($_[1], CC_SUPER)) },            # T_SUPER
+  sub { ($_[1] eq '_' ? T_SUB   : Token($_[1], CC_SUB)) },              # T_SUB
+  sub { undef; },    # T_IGNORE (we'll read next token)
+  \&handle_space,    # T_SPACE
   sub { $LETTER{ $_[1] } || ($LETTER{ $_[1] } = T_LETTER($_[1])); },    # T_LETTER
   sub { $OTHER{ $_[1] }  || ($OTHER{ $_[1] }  = T_OTHER($_[1])); },     # T_OTHER
   sub { $ACTIVE{ $_[1] } || ($ACTIVE{ $_[1] } = T_ACTIVE($_[1])); },    # T_ACTIVE
-  \&handle_comment,                                                     # T_COMMENT
+  \&handle_comment,          # T_COMMENT
   sub { T_OTHER($_[1]); }    # T_INVALID (we could get unicode!)
 );
 
@@ -298,7 +303,7 @@ sub readToken {
         $$self{colno}++; }
 
       # Sneak a comment out, every so often.
-      if ((($$self{lineno} % 25) == 0) && $STATE->lookupValue('INCLUDE_COMMENTS')) {
+      if ((($$self{lineno} % $TOKEN_PROGRESS_QUANTUM) == 0) && $STATE->lookupValue('INCLUDE_COMMENTS')) {
         return T_COMMENT("**** " . ($$self{shortsource} || 'String') . " Line $$self{lineno} ****"); }
     }
     if ($$self{skipping_spaces}) {    # Skip spaces now

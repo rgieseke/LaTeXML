@@ -82,14 +82,14 @@ sub invoke {
 
   my @pre = $self->executeBeforeDigest($stomach);
 
-  print STDERR '{' . $self->tracingCSName . "}\n" if $tracing;
+  Message('{' . $self->tracingCSName . '}') if $tracing;
   # Get some info before we process arguments...
   my $font   = $STATE->lookupValue('font');
   my $ismath = $STATE->lookupValue('IN_MATH');
   # Parse AND digest the arguments to the Constructor
   my $params = $self->getParameters;
   my @args   = ($params ? $params->readArgumentsAndDigest($stomach, $self) : ());
-  print STDERR $self->tracingArgs(@args) . "\n" if $tracing && @args;
+  Message($self->tracingArgs(@args)) if $tracing && @args;
   my $nargs = $self->getNumArgs;
   @args = @args[0 .. $nargs - 1];
 

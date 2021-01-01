@@ -2187,8 +2187,8 @@ DefPrimitive('\endgroup',   sub { $_[0]->endgroup; });
 # Debugging aids; Ignored!
 DefPrimitive('\show Token', sub {
     my $stuff = Invocation(T_CS('\meaning'), $_[1]);
-    print STDERR "\n> " . ($_[1][1] == CC_CS ? ToString($_[1]) . '=' : '') . writableTokens(Expand($stuff)) . ".\n";
-    print STDERR $_[0]->getLocator->toString() . "\n\n";
+    Message("\n> " . ($_[1][1] == CC_CS ? ToString($_[1]) . '=' : '') . writableTokens(Expand($stuff)));
+    Message($_[0]->getLocator->toString() . "\n");
     return; });
 DefPrimitive('\showbox Number', undef);
 DefPrimitive('\showlists',      undef);
@@ -2257,13 +2257,13 @@ sub writableTokens {
 DefPrimitive('\message{}', sub {
     my ($stomach, $stuff) = @_;
     return if LookupValue('VERBOSITY') <= -1;
-    print STDERR writableTokens(Expand($stuff));
+    Message(writableTokens(Expand($stuff)));
     return; });
 
 DefRegister('\errhelp' => Tokens());
 DefPrimitive('\errmessage{}', sub {
     my ($stomach, $stuff) = @_;
-    print STDERR ToString(Expand($stuff)) . ": " . ToString(Expand(Tokens(T_CS('\the'), T_CS('\errhelp')))) . "\n";
+    Message(ToString(Expand($stuff)) . ": " . ToString(Expand(Tokens(T_CS('\the'), T_CS('\errhelp')))));
     return; });
 
 # TeX I/O primitives
@@ -2340,7 +2340,7 @@ DefPrimitive('\write Number {}', sub {
       my $contents = LookupValue($handle);
       AssignValue($handle => $contents . UnTeX(Expand($tokens)) . "\n", 'global'); }
     elsif (LookupValue('VERBOSITY') > -1) {
-      print STDERR UnTeX(Expand($tokens)) . "\n"; }
+      Message(UnTeX(Expand($tokens))); }
     return; });
 
 # Since we don't paginate, we're effectively always "shipping out",
@@ -3021,7 +3021,7 @@ DefConstructor('\halign BoxSpecification',
     my $template = LaTeXML::Core::Alignment::Template->new((@nonreps ?
           (columns => [@nonreps], repeated => [@cols])
         : (columns => [@cols])));
-    #  print STDERR "Template = ".Stringify(Tokens(@template))."\n => ".$template->show."\n";
+    #  Debug("Template = ".Stringify(Tokens(@template))."\n => ".$template->show);
     # Now read & digest the body.
     # Note that the body MUST end with a \cr, and that we've made Special Arrangments
     # with \alignment@cr to recognize the end of the \halign
@@ -3810,7 +3810,7 @@ sub IsEmpty {
 #        && ($box->getDefinition eq $STATE->lookupDefinition(T_BEGIN))
 #        && !grep(!IsEmpty($_), $box->getBody->unlist)));
 
-# ##print STDERR "Box ".Stringify($box)." is empty: ".($is ? "yes":"no")."\n";
+# ##Debug("Box ".Stringify($box)." is empty: ".($is ? "yes":"no"));
 #   $is;
 # }
 
@@ -3950,7 +3950,6 @@ sub scriptSizer {
     else {
       $d = $hs / 2 + $ds; } }
   $w = Dimension($w); $h = Dimension($h); $d = Dimension($d);
-  #  print STDERR " ==> ".ToString($w).' x '.ToString($h).' + '.ToString($d)."\n";
   return ($w, $h, $d); }
 
 # NOTE: The When reverting these, the

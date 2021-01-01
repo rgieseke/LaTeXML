@@ -31,9 +31,12 @@ use base qw(LaTeXML::Common::Object);
 sub new {
   my ($class, %options) = @_;
   return bless {
-    mouth => undef, mouthstack => [], pushback => [], autoclose => 1, pending_comments => [],
-    verbosity => $options{verbosity} || 0
+    mouth     => undef, mouthstack => [], pushback => [], autoclose => 1, pending_comments => [],
+    verbosity => $options{verbosity} || 0,
+    progress  => 0,
   }, $class; }
+
+our $TOKEN_PROGRESS_QUANTUM = 10000;
 
 #**********************************************************************
 # Start reading tokens from a new Mouth.
@@ -214,6 +217,7 @@ sub readToken {
       push(@{ $$self{pending_comments} }, $token); }
     elsif ($cc == CC_MARKER) {
       LaTeXML::Core::Definition::stopProfiling($token, 'expand'); } }
+  NoteProgress() if ($$self{progress}++ % $TOKEN_PROGRESS_QUANTUM) == 0;
   if (defined $token) {
     return $token; }
   # Not in pushback, use the current mouth
@@ -248,6 +252,7 @@ sub readXToken {
   my ($token, $cc, $defn);
   while (1) {
     $token = shift(@{ $$self{pushback} }) || $$self{mouth}->readToken();
+    NoteProgress() if ($$self{progress}++ % $TOKEN_PROGRESS_QUANTUM) == 0;
     if (!defined $token) {
       return unless $$self{autoclose} && $toplevel && @{ $$self{mouthstack} };
       $self->closeMouth; }    # Next input stream.

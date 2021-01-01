@@ -98,9 +98,6 @@ sub rotatedProperties {
     if    ($origin =~ /t/) { $y0 = $h; }
     elsif ($origin =~ /b/) { $y0 = -$d; }
     elsif ($origin =~ /B/) { $y0 = 0; } }
-##  print STDERR "ROTATE ".$width->ptValue." x ".$height->ptValue." + ".$depth->ptValue
-##    ." by $angle about ".Dimension($x0)->ptValue.", ".Dimension($y0)->ptValue."\n";
-
   my $H        = $h + $d;
   my $rad      = $angle * 3.1415926 / 180;      # close enough
   my $s        = sin($rad);
@@ -127,11 +124,6 @@ sub rotatedProperties {
   my $widthp  = Dimension($wp);
   my $heightp = Dimension($hp);
   my $depthp  = Dimension($dp);
-##  print STDERR " => ".$widthp->ptValue." x ".$heightp->ptValue." + ".$depthp->ptValue." => ".$xsh.", ".$ysh."\n";
-
-## print STDERR "\nROTATE $angle of ".ToString($box)."\n"
-##  ." == ".ToString($width).' x '.ToString($height).' + '.ToString($depth)."\n"
-##  ." => ".ToString($widthp).' x '.ToString($heightp).' + '.ToString($depthp)."\n";
   return (
     angle       => $angle,
     width       => $widthp,
@@ -211,7 +203,7 @@ DefConstructor('\@includegraphics OptionalMatch:* [][] Semiverbatim',
       @candidates = map { pathname_relative($_, $base) } @candidates; }
     (graphic => $graphic,
       candidates => join(',', @candidates),
-      options => $options); },
+      options    => $options); },
   alias => '\includegraphics');
 
 # Also unimplemented... probably nothing useful to pass thru anyway?

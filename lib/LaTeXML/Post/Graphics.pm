@@ -48,7 +48,7 @@ use base qw(LaTeXML::Post::Processor);
 sub new {
   my ($class, %options) = @_;
   my $self = $class->SUPER::new(%options);
-  $$self{dppt} = (($options{dpi} || 90) / 72.0);    # Dots per point.
+  $$self{dppt}            = (($options{dpi} || 90) / 72.0);    # Dots per point.
   $$self{ignore_options}  = $options{ignore_options}  || [];
   $$self{trivial_scaling} = $options{trivial_scaling} || 1;
   $$self{graphics_types}  = $options{graphics_types}
@@ -58,10 +58,10 @@ sub new {
     || {
     ai => { destination_type => 'png',
       transparent => 1,
-      prescale    => 1, ncolors => '400%', quality => 90, unit => 'point' },
+      prescale => 1, ncolors => '400%', quality => 90, unit => 'point' },
     pdf => { destination_type => 'png',
       transparent => 1,
-      prescale    => 1, ncolors => '400%', quality => 90, unit => 'point' },
+      prescale => 1, ncolors => '400%', quality => 90, unit => 'point' },
     ps => { destination_type => 'png', transparent => 1,
       prescale => 1, ncolors => '400%', quality => 90, unit => 'point' },
     eps => { destination_type => 'png', transparent => 1,
@@ -89,7 +89,7 @@ sub process {
   my ($self, $doc, @nodes) = @_;
   local $LaTeXML::Post::Graphics::SEARCHPATHS
     = [map { pathname_canonical($_) } $self->findGraphicsPaths($doc), $doc->getSearchPaths];
-  NoteProgressDetailed(" [Using graphicspaths: "
+  NoteStatus(2, " [Using graphicspaths: "
       . join(', ', @$LaTeXML::Post::Graphics::SEARCHPATHS) . "]");
   foreach my $node (@nodes) {
     $self->processGraphic($doc, $node); }
@@ -122,7 +122,7 @@ sub findGraphicFile {
     # Find all acceptable image files, in order of search paths
     my ($dir, $name, $reqtype) = pathname_split($source);
     # Ignore the requested type? Or should it increase desirability?
-    my $file = pathname_concat($dir, $name);
+    my $file  = pathname_concat($dir, $name);
     my @paths = pathname_findall($file, paths => $LaTeXML::Post::Graphics::SEARCHPATHS,
       # accept empty type, incase bad type name, but actual file's content is known type.
       types => ['', $self->getGraphicsSourceTypes]);
@@ -130,8 +130,8 @@ sub findGraphicFile {
     # Now, find the first image that is either the correct type,
     # or has the most desirable type mapping
     foreach my $path (@paths) {
-      my $type  = pathname_type($path);
-      my $props = $$self{type_properties}{$type};
+      my $type         = pathname_type($path);
+      my $props        = $$self{type_properties}{$type};
       my $desirability = $$props{desirability} || ($type eq ($$props{destination_type} || 'notype') ? 10 : 0);
       if ($desirability > $best) {
         $best     = $desirability;
@@ -166,7 +166,7 @@ sub setGraphicSrc {
   # If we are on windows, the $src path will be used for a URI context from the 'imagesrc' attribute,
   # so we can already switch it to the canonical slashified form
   $node->setAttribute('imagesrc',    pathname_to_url($src));
-  $node->setAttribute('imagewidth',  $width) if defined $width;
+  $node->setAttribute('imagewidth',  $width)  if defined $width;
   $node->setAttribute('imageheight', $height) if defined $height;
   return; }
 
@@ -200,7 +200,7 @@ sub transformGraphic {
   my $type = $properties{destination_type} || $srctype;
   my $key  = (ref $self) . ':' . join('|', "$reldir$name.$srctype.$type",
     map { join(' ', @$_) } @$transform);
-  NoteProgressDetailed("\n[Processing $source as key=$key]");
+  NoteStatus(1, "Processing $source as key=$key");
 
   my $dest = $self->desiredResourcePathname($doc, $node, $source, $type);
   if (my $prev = $doc->cacheLookup($key)) {                 # Image was processed on previous run?
@@ -212,7 +212,7 @@ sub transformGraphic {
       if ((!defined $dest) || ($cached eq $dest)) {
         my $absdest = pathname_absolute($cached, $doc->getDestinationDirectory);
         if (pathname_timestamp($source) <= pathname_timestamp($absdest)) {
-          NoteProgressDetailed(" [Reuse $cached @ " . ($width || '?') . " x " . ($height || '?') . "]");
+          NoteStatus(2, " [Reuse $cached @ " . ($width || '?') . " x " . ($height || '?') . "]");
           return ($cached, $width, $height); } } } }
   # Trivial scaling case: Use original image with (at most) different width & height.
   my $triv_scaling = $$self{trivial_scaling} && ($type eq $srctype)
@@ -254,7 +254,7 @@ sub transformGraphic {
       $dest    = $self->generateResourcePathname($doc, $node, $source, $type);
       $absdest = $doc->checkDestination($dest); }
 
-    NoteProgressDetailed(" [Destination $absdest]");
+    NoteStatus(2, " [Destination $absdest]");
     ($width, $height) = image_graphicx_trivial($source, $transform, ddpt => $$self{ddpt});
     if (!($width && $height)) {
       if (!image_can_image()) {
@@ -267,23 +267,23 @@ sub transformGraphic {
           "Couldn't get usable image size for $source"); } }
     pathname_copy($source, $absdest)
       or Warn('I/O', $absdest, undef, "Couldn't copy $source to $absdest", "Response was: $!");
-    NoteProgressDetailed(" [Copied to $dest @ " . ($width || '?') . " x " . ($height || '?') . "]"); }
+    NoteStatus(2, " [Copied to $dest @ " . ($width || '?') . " x " . ($height || '?') . "]"); }
   else {
     # With a complex transformation, we really needs a new name (well, don't we?)
     $dest = $self->generateResourcePathname($doc, $node, $source, $type) unless $dest;
     my $absdest = $doc->checkDestination($dest);
-    NoteProgressDetailed(" [Destination $absdest]");
+    NoteStatus(2, " [Destination $absdest]");
     ($image, $width, $height) = image_graphicx_complex($source, $transform,
       ddpt => $$self{ddpt}, background => $$self{background}, %properties);
     if (!($image && $width && $height)) {
       Warn('expected', 'image', undef,
         "Couldn't get usable image for $source");
       return; }
-    NoteProgressDetailed(" [Writing to $absdest]");
+    NoteStatus(2, " [Writing to $absdest]");
     image_write($image, $absdest) or return; }
 
   $doc->cacheStore($key, "$dest|" . ($width || '') . '|' . ($height || ''));
-  NoteProgressDetailed(" [done with $key]");
+  NoteStatus(2, " [done with $key]");
   return ($dest, $width, $height); }
 
 #======================================================================
