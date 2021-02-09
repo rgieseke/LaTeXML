@@ -150,7 +150,7 @@ sub invokeToken {
   my ($self, $token) = @_;
   no warnings 'recursion';
 INVOKE:
-  NoteProgress() if ($$self{progress}++ % $DIGESTION_PROGRESS_QUANTUM) == 0;
+  ProgressStep() if ($$self{progress}++ % $DIGESTION_PROGRESS_QUANTUM) == 0;
   push(@{ $$self{token_stack} }, $token);
   if (scalar(@{ $$self{token_stack} }) > $MAXSTACK) {
     Fatal('internal', '<recursion>', $self,

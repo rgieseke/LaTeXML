@@ -217,7 +217,7 @@ sub readToken {
       push(@{ $$self{pending_comments} }, $token); }
     elsif ($cc == CC_MARKER) {
       LaTeXML::Core::Definition::stopProfiling($token, 'expand'); } }
-  NoteProgress() if ($$self{progress}++ % $TOKEN_PROGRESS_QUANTUM) == 0;
+  ProgressStep() if ($$self{progress}++ % $TOKEN_PROGRESS_QUANTUM) == 0;
   if (defined $token) {
     return $token; }
   # Not in pushback, use the current mouth
@@ -252,7 +252,7 @@ sub readXToken {
   my ($token, $cc, $defn);
   while (1) {
     $token = shift(@{ $$self{pushback} }) || $$self{mouth}->readToken();
-    NoteProgress() if ($$self{progress}++ % $TOKEN_PROGRESS_QUANTUM) == 0;
+    ProgressStep() if ($$self{progress}++ % $TOKEN_PROGRESS_QUANTUM) == 0;
     if (!defined $token) {
       return unless $$self{autoclose} && $toplevel && @{ $$self{mouthstack} };
       $self->closeMouth; }    # Next input stream.
